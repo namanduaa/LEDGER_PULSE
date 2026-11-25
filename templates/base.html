@@ -1,0 +1,78 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LedgerPulse{% endblock %} · LedgerPulse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+{% block body %}
+{% with url=request.resolver_match.url_name ns=request.resolver_match.namespace %}
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="{% url 'ledger:dashboard' %}">
+      <span class="brand-mark">LP</span>
+      <span><span class="brand-name">LedgerPulse</span><br><span class="brand-sub">Personal Vault</span></span>
+    </a>
+    <div class="nav-label">Platform</div>
+    <nav class="nav">
+      <a href="{% url 'ledger:dashboard' %}" class="{% if url == 'dashboard' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</a>
+      <a href="{% url 'ledger:transactions' %}" class="{% if url == 'transactions' or url == 'transaction_edit' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Transactions</a>
+      <a href="{% url 'ledger:coming_soon' 'analytics' %}" class="{% if section == 'analytics' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l5-6 4 4 8-9"/><path d="M3 21h18"/></svg>Analytics</a>
+      <a href="{% url 'budgets:list' %}" class="{% if ns == 'budgets' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 9h18M16 14h2"/></svg>Budgets</a>
+      <a href="{% url 'ledger:coming_soon' 'reports' %}" class="{% if section == 'reports' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg>Reports</a>
+      <a href="{% url 'ledger:coming_soon' 'import' %}" class="{% if section == 'import' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><path d="M8 12h8"/></svg>Statement Import</a>
+      <a href="{% url 'ledger:settings' %}" class="{% if url == 'settings' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 13.7H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3.1V3a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 4.6l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Accounts &amp; Categories</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="status-pill"><span class="dot"></span> Ledger synced</div>
+      <div class="me">
+        <span class="avatar">{{ user.initials }}</span>
+        <div><div class="me-name">{{ user.full_name|default:user.email }}</div><div class="me-email">{{ user.email }}</div></div>
+        <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+          <button class="link-btn" title="Log out" aria-label="Log out">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <form class="search" method="get" action="{% url 'ledger:transactions' %}" role="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="search" name="q" placeholder="Search transactions…" aria-label="Search transactions" value="{{ request.GET.q }}">
+      </form>
+      {% if period %}
+      <form method="get" class="month-pick">
+        <input type="month" name="month" value="{{ period.key }}" aria-label="Month" onchange="this.form.submit()">
+      </form>
+      {% endif %}
+      <div class="topbar-spacer"></div>
+      <a class="btn btn-primary" href="{% url 'ledger:transactions' %}#new">+ Add Transaction</a>
+    </header>
+
+    <main class="content">
+      {% if messages %}
+      <ul class="messages">{% for message in messages %}<li class="msg {{ message.tags }}">{{ message }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}
+</body>
+</html>

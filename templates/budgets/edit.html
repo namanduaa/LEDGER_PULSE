@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ envelope.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs">Budgets / <b>Edit envelope</b></div>
+    <h1>{{ envelope.name }}</h1>
+  </div>
+</div>
+<div class="card" style="max-width:720px">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="field-row">{% include "partials/field.html" with field=form.name %}{% include "partials/field.html" with field=form.kind %}</div>
+    {% include "partials/field.html" with field=form.monthly_cap %}
+    <div class="field"><span class="label">{{ form.categories.label }}</span><div class="checkbox-list">{{ form.categories }}</div>{{ form.categories.errors }}</div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Save changes</button>
+      <a class="btn" href="{% url 'budgets:list' %}">Cancel</a>
+    </div>
+  </form>
+  <form method="post" action="{% url 'budgets:delete' envelope.pk %}" class="section">
+    {% csrf_token %}
+    <button class="btn btn-danger" onclick="return confirm('Delete this envelope? Transactions are not affected.')">Delete envelope</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% if form.non_field_errors %}<div class="msg error" style="margin-bottom:12px">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+{% include "partials/field.html" with field=form.direction %}
+{% include "partials/field.html" with field=form.amount %}
+{% include "partials/field.html" with field=form.payee %}
+<div class="field-row">
+  {% include "partials/field.html" with field=form.category %}
+  {% include "partials/field.html" with field=form.account %}
+</div>
+{% include "partials/field.html" with field=form.posted_at %}
+{% include "partials/field.html" with field=form.note %}
+{% include "partials/field.html" with field=form.receipt %}
+{% include "partials/field.html" with field=form.is_recurring %}
