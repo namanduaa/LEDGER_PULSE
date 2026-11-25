@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load money %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs">Portfolio vault / <b>Transactions</b></div>
+    <h1>Transactions</h1>
+  </div>
+</div>
+
+<div class="grid grid-4">
+  <div class="card"><div class="kpi-label">Ledger records</div><div class="kpi-value">{{ page.paginator.count }}</div><div class="kpi-sub">Matching the current filters</div></div>
+  <div class="card"><div class="kpi-label">Debits (out)</div><div class="kpi-value red">-{{ totals.debits|money }}</div><div class="kpi-sub">{{ totals.debit_count }} transactions</div></div>
+  <div class="card"><div class="kpi-label">Credits (in)</div><div class="kpi-value green">+{{ totals.credits|money }}</div><div class="kpi-sub">{{ totals.credit_count }} transactions</div></div>
+  <div class="card"><div class="kpi-label">Net flow</div><div class="kpi-value {% if totals.net < 0 %}red{% endif %}">{{ totals.net|signed_money }}</div><div class="kpi-sub">Credits minus debits</div></div>
+</div>
+
+<div class="grid grid-txn section">
+  <div class="stack">
+    <section class="card">
+      <nav class="tabs" aria-label="Transaction type">
+        {% for key, label, count in tabs %}
+        <a href="?{% if tab_query %}{{ tab_query }}&{% endif %}tab={{ key }}" class="{% if tab == key %}active{% endif %}">{{ label }} <span class="count">{{ count }}</span></a>
+        {% endfor %}
+      </nav>
+      <form method="get" class="filters">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        {{ filter_form.q }}
+        {{ filter_form.account }}
+        {{ filter_form.category }}
+        <span title="From">{{ filter_form.start }}</span>
+        <span title="To">{{ filter_form.end }}</span>
+        <div class="actions"><button class="btn" type="submit">Filter</button><a class="btn" href="{% url 'ledger:transactions' %}">Reset</a></div>
+      </form>
+      {% if filter_form.errors %}<div class="msg error" style="margin-top:10px">{% for f in filter_form %}{{ f.errors|join:" " }}{% endfor %}</div>{% endif %}
+    </section>
+
+    <form method="post" action="{% url 'ledger:transaction_bulk' %}" class="card flush" id="bulk-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <div style="padding:12px 16px 0">
+        <div class="bulkbar" style="margin-top:0">
+          <span class="muted">With selected:</span>
+          <select name="category" aria-label="Category for selected">
+            <option value="">Choose category…</option>
+            {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+          </select>
+          <button class="btn btn-sm" name="action" value="categorize">Categorize</button>
+          <span class="spacer"></span>
+          <button class="btn btn-sm btn-danger" name="action" value="delete" onclick="return confirm('Delete the selected transactions?')">Delete</button>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-top:12px">
+        <table class="data">
+          <thead><tr>
+            <th style="width:36px"><span class="sr-only">Select</span></th>
+            <th>Date &amp; time</th><th>Payee &amp; note</th><th>Category</th><th>Account</th><th class="right">Amount</th><th></th>
+          </tr></thead>
+          <tbody>
+          {% for t in page %}
+            <tr>
+              <td><input type="checkbox" name="ids" value="{{ t.pk }}" aria-label="Select {{ t.payee }}"></td>
+              <td class="when">{{ t.posted_at|date:"M j, Y" }}<br><span class="muted">{{ t.posted_at|date:"H:i" }}</span></td>
+              <td><div class="payee"><span class="payee-icon {% if t.direction == 'income' %}in{% endif %}">{{ t.payee|slice:":1"|upper }}</span><div><b>{{ t.payee }}</b><small>{{ t.note|truncatechars:48 }}</small>{% if t.is_recurring %} <span class="badge gray">recurring</span>{% endif %}</div></div></td>
+              <td>{% if t.category %}<span class="chip"><i style="background:{{ t.category.color }}"></i>{{ t.category.name }}</span>{% elif t.direction == 'transfer' %}<span class="chip">Transfer</span>{% else %}<span class="chip">Uncategorised</span>{% endif %}</td>
+              <td class="muted">{{ t.account }}</td>
+              <td class="amount {% if t.direction == 'income' %}green{% endif %}">{% if t.direction == 'transfer' %}{{ t.amount|money }}{% else %}{{ t.signed_amount|signed_money }}{% endif %}</td>
+              <td class="nowrap">{% if t.receipt %}<a href="{% url 'ledger:receipt' t.pk %}" title="Receipt">📎</a> {% endif %}<a href="{% url 'ledger:transaction_edit' t.pk %}">Edit</a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="empty">No transactions match. {% if not request.GET %}Add your first one using the form.{% endif %}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <span class="muted">Showing {{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }}</span>
+        <div class="pages">
+          {% if page.has_previous %}<a href="?{{ query }}&page={{ page.previous_page_number }}">‹</a>{% endif %}
+          {% for n in page.paginator.get_elided_page_range %}
+            {% if n == page.number %}<span class="current">{{ n }}</span>{% elif n == page.paginator.ELLIPSIS %}<span>…</span>{% else %}<a href="?{{ query }}&page={{ n }}">{{ n }}</a>{% endif %}
+          {% endfor %}
+          {% if page.has_next %}<a href="?{{ query }}&page={{ page.next_page_number }}">›</a>{% endif %}
+        </div>
+        <span class="muted">Rows: {% for size in page_sizes %}{% if size == per_page %}<b>{{ size }}</b>{% else %}<a href="?{{ query }}&per_page={{ size }}">{{ size }}</a>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}</span>
+      </div>
+    </form>
+  </div>
+
+  <aside class="card panel" id="new">
+    <div class="card-head"><h2>⊕ New Transaction</h2></div>
+    {% if has_accounts %}
+    <form method="post" action="{% url 'ledger:transaction_create' %}" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% include "ledger/_transaction_fields.html" %}
+      <button class="btn btn-primary btn-block" type="submit">Save &amp; Post to Ledger</button>
+    </form>
+    {% else %}
+    <p class="muted">Add an account first (for example your bank account or card).</p>
+    <a class="btn btn-primary" href="{% url 'ledger:settings' %}">Add an account</a>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

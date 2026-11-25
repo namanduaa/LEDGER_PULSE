@@ -1,27 +1,10 @@
-# Python
+.env
+.venv/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-venv/
-.venv/
-.env
-.env.example
-.env.local
-.pyc
-
-# Django
-*.sqlite3
-/db.sqlite3
 media/
 staticfiles/
-
-# Editor
-.vscode/
+.coverage
+htmlcov/
 .idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
+.vscode/

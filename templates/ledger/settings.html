@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load money %}
+{% block title %}Accounts & Categories{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs">Portfolio vault / <b>Settings</b></div>
+    <h1>Accounts &amp; Categories</h1>
+    <p>Your bank accounts, cards and cash, and the categories you sort transactions into.</p>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <div class="card-head"><h2>Accounts</h2></div>
+    {% for a in accounts %}
+    <div class="list-row">
+      <div class="grow"><b>{{ a }}</b> {% if not a.is_active %}<span class="badge gray">archived</span>{% endif %}<div class="muted" style="font-size:12px">{{ a.get_kind_display }} · opening {{ a.opening_balance|money }} · {{ a.txn_count }} transaction{{ a.txn_count|pluralize }}</div></div>
+      {% if a.is_active %}
+      <form method="post" action="{% url 'ledger:account_delete' a.pk %}">{% csrf_token %}<button class="link-btn danger" onclick="return confirm('Delete {{ a.name|escapejs }}?')">{% if a.txn_count %}Archive{% else %}Delete{% endif %}</button></form>
+      {% endif %}
+    </div>
+    {% endfor %}
+    <form method="post" class="section" novalidate>
+      {% csrf_token %}
+      <h3 style="margin-bottom:12px">Add an account</h3>
+      <div class="field-row">{% include "partials/field.html" with field=account_form.name %}{% include "partials/field.html" with field=account_form.kind %}</div>
+      <div class="field-row">{% include "partials/field.html" with field=account_form.last4 %}{% include "partials/field.html" with field=account_form.opening_balance %}</div>
+      <button class="btn btn-primary" name="add_account" value="1">Add account</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Categories</h2></div>
+    {% for c in categories %}
+    <div class="list-row">
+      <span class="swatch" style="background:{{ c.color }}"></span>
+      <div class="grow"><b>{{ c.name }}</b> <span class="badge {% if c.kind == 'income' %}green{% else %}gray{% endif %}">{{ c.get_kind_display }}</span><div class="muted" style="font-size:12px">{{ c.txn_count }} transaction{{ c.txn_count|pluralize }}</div></div>
+      <form method="post" action="{% url 'ledger:category_delete' c.pk %}">{% csrf_token %}<button class="link-btn danger" onclick="return confirm('Delete {{ c.name|escapejs }}? Its transactions become uncategorised.')">Delete</button></form>
+    </div>
+    {% endfor %}
+    <form method="post" class="section" novalidate>
+      {% csrf_token %}
+      <h3 style="margin-bottom:12px">Add a category</h3>
+      <div class="field-row">{% include "partials/field.html" with field=category_form.name %}{% include "partials/field.html" with field=category_form.kind %}</div>
+      {% include "partials/field.html" with field=category_form.color %}
+      <button class="btn btn-primary" name="add_category" value="1">Add category</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

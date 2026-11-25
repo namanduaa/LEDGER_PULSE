@@ -1,0 +1,16 @@
+{# Usage: {% include "partials/field.html" with field=form.amount %} #}
+<div class="field">
+  {% if field.field.widget.input_type == "checkbox" %}
+    <label class="checkbox">{{ field }} {{ field.label }}</label>
+  {% elif field.field.widget.input_type == "radio" %}
+    <span class="label">{{ field.label }}</span>
+    <div class="segmented">{% for choice in field %}<div>{{ choice.tag }}<label for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label></div>{% endfor %}</div>
+  {% elif field.field.widget.allow_multiple_selected and field.field.widget.input_type == "checkbox" %}
+    <span class="label">{{ field.label }}</span>{{ field }}
+  {% else %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+  {% endif %}
+  {% if field.help_text and show_help %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+  {{ field.errors }}
+</div>

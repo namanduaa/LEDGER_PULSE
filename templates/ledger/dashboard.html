@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load money %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs">Portfolio vault / <b>{{ period.label }}</b></div>
+    <h1>Executive Treasury Overview</h1>
+  </div>
+  <div class="actions">
+    <a class="btn" href="?month={{ period.previous.key }}">← {{ period.previous.label }}</a>
+    <a class="btn" href="?month={{ period.next.key }}">{{ period.next.label }} →</a>
+  </div>
+</div>
+
+{% if not transaction_total %}
+<div class="card section" style="margin-top:0;margin-bottom:16px">
+  <h3>Start by adding your first transaction</h3>
+  <p class="muted" style="margin:6px 0 12px">Add your bank accounts and cards under <a href="{% url 'ledger:settings' %}">Accounts &amp; Categories</a>, then post your expenses and income.</p>
+  <a class="btn btn-primary" href="{% url 'ledger:transactions' %}#new">+ Add Transaction</a>
+</div>
+{% endif %}
+
+<div class="grid grid-4">
+  <div class="card">
+    <div class="kpi-label">Net position
+      {% if net_change is not None %}<span class="badge {% if net_change >= 0 %}green{% else %}red{% endif %}">{% if net_change >= 0 %}+{% endif %}{{ net_change }}% MoM</span>{% endif %}
+    </div>
+    <div class="kpi-value">{{ net_now|money }}</div>
+    <div class="kpi-sub">Prior close: <span class="mono">{{ net_prior|money }}</span></div>
+  </div>
+  <div class="card">
+    <div class="kpi-label">Monthly inflow <span class="badge">{{ totals.income_count }} entries</span></div>
+    <div class="kpi-value green">{{ totals.inflow|money }}</div>
+    <div class="kpi-sub">{% if inflow_change >= 0 %}↑{% else %}↓{% endif %} <span class="mono">{{ inflow_change|money }}</span> vs {{ period.previous.label }}</div>
+  </div>
+  <div class="card">
+    <div class="kpi-label">Monthly outflow
+      {% if outflow_change_pct is not None %}<span class="badge {% if outflow_change_pct > 0 %}red{% else %}green{% endif %}">{% if outflow_change_pct > 0 %}+{% endif %}{{ outflow_change_pct }}% MoM</span>{% endif %}
+    </div>
+    <div class="kpi-value">{{ totals.outflow|money }}</div>
+    <div class="kpi-sub">Velocity: {% if daily_burn is not None %}<span class="mono red">{{ daily_burn|money }} / day</span> over {{ days_elapsed }} day{{ days_elapsed|pluralize }}{% else %}—{% endif %}</div>
+  </div>
+  <div class="card">
+    <div class="kpi-label">Savings rate</div>
+    <div class="kpi-value">{{ totals.savings_rate|pct }}</div>
+    <div class="kpi-sub">Net retained: <span class="mono">{{ totals.net|money }}</span></div>
+    <div class="kpi-bar"><span style="width: {% if totals.savings_rate and totals.savings_rate > 0 %}{{ totals.savings_rate|stringformat:'s' }}{% else %}0{% endif %}%; background: var(--green)"></span></div>
+  </div>
+</div>
+
+<div class="grid grid-main section">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Cashflow Dynamics</h2><p>Daily inflow vs outflow for {{ period.label }}</p></div>
+        <div class="legend"><span><i style="background:var(--primary)"></i>Inflow</span><span><i style="background:#c7cbe0"></i>Outflow</span></div>
+      </div>
+      <div class="bars" role="img" aria-label="Daily inflow and outflow chart">
+        {% now "Y-m-d" as today %}
+        {% for d in flows %}
+        <div class="day {% if d.day|date:'Y-m-d' == today %}today{% endif %}" data-tip="{{ d.day|date:'D, M j' }}&#10;In  {{ d.inflow|money }}&#10;Out {{ d.outflow|money }}">
+          <span class="bar in" style="height: {{ d.inflow_pct|stringformat:'s' }}%"></span>
+          <span class="bar out" style="height: {{ d.outflow_pct|stringformat:'s' }}%"></span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="bar-axis">{% for d in flows %}{% if forloop.first or forloop.last or d.day.day|divisibleby:5 %}<span>{{ d.day|date:"M j" }}</span>{% endif %}{% endfor %}</div>
+    </section>
+
+    <section class="card flush">
+      <div class="card-head" style="padding-bottom:12px">
+        <h2>Recent Activity</h2>
+        <a href="{% url 'ledger:transactions' %}">View all ({{ transaction_total }}) →</a>
+      </div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Merchant &amp; source</th><th>Category</th><th>Account</th><th>Date</th><th class="right">Amount</th></tr></thead>
+          <tbody>
+          {% for t in recent %}
+            <tr>
+              <td><div class="payee"><span class="payee-icon {% if t.direction == 'income' %}in{% endif %}">{{ t.payee|slice:":1"|upper }}</span><div><b>{{ t.payee }}</b><small>{{ t.note|truncatechars:40 }}</small></div></div></td>
+              <td>{% if t.category %}<span class="chip"><i style="background:{{ t.category.color }}"></i>{{ t.category.name }}</span>{% else %}<span class="chip">{{ t.get_direction_display }}</span>{% endif %}</td>
+              <td class="muted">{{ t.account }}</td>
+              <td class="when">{{ t.posted_at|date:"M j, Y" }}</td>
+              <td class="amount {% if t.direction == 'income' %}green{% endif %}">{{ t.signed_amount|signed_money }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="empty">No transactions yet.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><div><h2>Spend Distribution</h2><p>Expenses by category</p></div></div>
+      <div class="donut" style="background: conic-gradient({{ donut }})">
+        <div class="donut-center"><div><small>Total spend</small><b>{{ spend_total|money }}</b></div></div>
+      </div>
+      {% for s in spend|slice:":6" %}
+      <div class="split-row">
+        <span class="chip" style="background:none;padding:0"><i style="background:{{ s.color }}"></i>{{ s.name }}</span>
+        <span class="mono">{{ s.total|money }} <span class="muted">({{ s.share }}%)</span></span>
+        <div class="progress"><span style="width:{{ s.share|stringformat:'s' }}%;background:{{ s.color }}"></span></div>
+      </div>
+      {% empty %}
+      <p class="muted" style="text-align:center">No spending recorded this month.</p>
+      {% endfor %}
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Pacing &amp; Burn Health</h2><span class="badge gray">Day {{ days_elapsed }}/{{ period.days_in_month }}</span></div>
+      {% for s in envelopes %}
+      <div class="pace-item">
+        <div class="pace-top">
+          <div><b>{{ s.envelope.name }}</b><div class="mono muted" style="font-size:12px">{{ s.spent|money }} spent of {{ s.cap|money }}</div></div>
+          <span class="badge {{ s.status }}">{{ s.utilization }}% used</span>
+        </div>
+        <div class="progress {{ s.status }}"><span style="width:{{ s.bar_width|stringformat:'s' }}%"></span></div>
+        <div class="mono" style="font-size:12px;margin-top:8px;display:flex;justify-content:space-between">
+          <span>Remaining: {{ s.remaining|money }}</span>
+          <span class="{% if s.is_ahead_of_pace %}red{% else %}green{% endif %}">{% if s.is_ahead_of_pace %}Ahead of pace{% else %}On track{% endif %}</span>
+        </div>
+      </div>
+      {% empty %}
+      <p class="muted">No budget envelopes yet.</p>
+      {% endfor %}
+      <p style="margin:14px 0 0;text-align:center"><a href="{% url 'budgets:list' %}">Adjust limits &amp; envelopes →</a></p>
+    </section>
+  </div>
+</div>
+{% endblock %}

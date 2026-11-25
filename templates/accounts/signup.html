@@ -1,0 +1,15 @@
+{% extends "accounts/auth_base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block auth %}
+<h1>Create your account</h1>
+<p>Sign up with your email and a password.</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% include "partials/field.html" with field=form.full_name %}
+  {% include "partials/field.html" with field=form.email %}
+  {% include "partials/field.html" with field=form.password1 show_help=True %}
+  {% include "partials/field.html" with field=form.password2 %}
+  <button class="btn btn-primary btn-block" type="submit">Create account</button>
+</form>
+<p class="auth-alt">Already have an account? <a href="{% url 'accounts:login' %}">Log in</a></p>
+{% endblock %}

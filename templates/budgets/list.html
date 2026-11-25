@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load money %}
+{% block title %}Budgets{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs">Portfolio vault / <b>Budget planning &amp; envelopes</b></div>
+    <h1>Budget Planning &amp; Financial Guardrails</h1>
+    <p>Monthly envelope caps, with spending pace tracked against the days elapsed in {{ period.label }}.</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="?month={{ period.previous.key }}">← {{ period.previous.label }}</a>
+    <a class="btn" href="?month={{ period.next.key }}">{{ period.next.label }} →</a>
+    <a class="btn btn-primary" href="#new-envelope">+ Create Budget Envelope</a>
+  </div>
+</div>
+
+<section class="card">
+  <div class="grid grid-3">
+    <div><div class="kpi-label">Total monthly allocation</div><div class="kpi-value">{{ summary.allocated|money }}</div><div class="kpi-sub">Across {{ summary.envelope_count }} active envelope{{ summary.envelope_count|pluralize }}</div></div>
+    <div><div class="kpi-label">Actual period spend {% if summary.utilization is not None %}<span class="badge">{{ summary.utilization }}%</span>{% endif %}</div><div class="kpi-value">{{ summary.spent|money }}</div><div class="kpi-sub">Spending in envelope categories</div></div>
+    <div><div class="kpi-label">Remaining safe-to-spend</div><div class="kpi-value {% if summary.remaining < 0 %}red{% else %}green{% endif %}">{{ summary.remaining|money }}</div><div class="kpi-sub">{{ period.days_in_month|add:0 }} days in month · day {{ days_elapsed }}</div></div>
+  </div>
+  {% if summary.utilization is not None %}
+  <div class="pacebar" title="Bar: spend vs allocation. Marker: share of the month elapsed.">
+    <span style="width:{% if summary.utilization > 100 %}100{% else %}{{ summary.utilization|stringformat:'s' }}{% endif %}%;{% if summary.utilization > 100 %}background:var(--red){% elif summary.utilization >= 80 %}background:#64748b{% endif %}"></span>
+    <em style="left:{{ elapsed_pct|stringformat:'s' }}%"></em>
+  </div>
+  <div class="legend-line"><span class="muted">● Safe (&lt;80%) · Caution (80–99%) · Overspent (&gt;100%)</span><b>{{ elapsed_pct }}% of month elapsed vs {{ summary.utilization }}% spent</b></div>
+  {% endif %}
+</section>
+
+<div class="section">
+  <div class="card-head"><h2>Active Budget Envelopes <span class="badge">{{ statuses|length }} active</span></h2></div>
+  <div class="grid grid-3">
+    {% for s in statuses %}
+    <article class="card envelope">
+      <div class="card-head" style="margin:0;align-items:flex-start">
+        <div><div class="kind">{{ s.envelope.get_kind_display }}</div><h3>{{ s.envelope.name }}</h3></div>
+        <span class="badge {{ s.status }}">● {{ s.status_label }}</span>
+      </div>
+      <div class="amount-line"><span class="big {% if s.status == 'overspent' %}red{% endif %}">{{ s.spent|money }}</span><span class="muted">of {{ s.cap|money }} cap</span></div>
+      <div class="progress {{ s.status }}"><span style="width:{{ s.bar_width|stringformat:'s' }}%"></span></div>
+      <div class="meta"><span>{% if s.remaining < 0 %}Deficit: <b class="red">{{ s.remaining|money }}</b>{% else %}Remaining: <b>{{ s.remaining|money }}</b>{% endif %}</span><span class="{% if s.status == 'overspent' %}red{% elif s.status == 'caution' %}muted{% else %}green{% endif %}">{{ s.utilization }}% utilized</span></div>
+      {% if s.is_ahead_of_pace and s.status != 'overspent' %}
+      <div class="msg info" style="font-size:12px">Spending is ahead of pace: {{ s.spent|money }} spent vs {{ s.expected_by_now|money }} expected by today.</div>
+      {% endif %}
+      <div class="cats">{% for c in s.envelope.categories.all %}<span class="chip" style="background:#fff"><i style="background:{{ c.color }}"></i>{{ c.name }}</span>{% empty %}No categories linked yet{% endfor %}</div>
+      <div class="foot">
+        <span>Pace: {% if s.is_ahead_of_pace %}ahead{% else %}on or under{% endif %}</span>
+        <span><a href="{% url 'budgets:edit' s.envelope.pk %}">Adjust →</a></span>
+      </div>
+    </article>
+    {% empty %}
+    <div class="card empty" style="grid-column:1/-1">No envelopes yet. Create one below, for example "Food &amp; Dining" with a monthly cap.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<section class="card section" id="new-envelope" style="max-width:720px">
+  <div class="card-head"><h2>Create a budget envelope</h2></div>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="field-row">{% include "partials/field.html" with field=form.name %}{% include "partials/field.html" with field=form.kind %}</div>
+    {% include "partials/field.html" with field=form.monthly_cap %}
+    <div class="field"><span class="label">{{ form.categories.label }}</span><div class="checkbox-list">{{ form.categories }}</div>{{ form.categories.errors }}</div>
+    <button class="btn btn-primary" type="submit">Create envelope</button>
+  </form>
+</section>
+{% endblock %}

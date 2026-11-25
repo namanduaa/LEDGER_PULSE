@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs">Portfolio vault / <b>{{ title }}</b></div>
+    <h1>{{ title }}</h1>
+  </div>
+</div>
+<div class="card soon">
+  <span class="badge">Planned</span>
+  <h2 style="margin-top:12px">{{ title }} is on the roadmap</h2>
+  <p class="muted">{{ summary }}</p>
+  <p class="muted">See <code>docs/ROADMAP.md</code> for what's planned and in which order.</p>
+</div>
+{% endblock %}
